@@ -2,6 +2,8 @@
 
 Este repositorio contiene la versión en **Python** del **Juego del Laberinto**, una adaptación de la implementación original en Smalltalk. En este proyecto, se han aplicado patrones de diseño para garantizar una estructura modular, flexible y mantenible.
 
+![WhatsApp Image 2025-02-19 at 10 40 43](https://github.com/user-attachments/assets/badbdc90-d651-4d6d-a6c0-2692969892db)
+
 ## 📌 Estructura del Proyecto
 
 Las clases principales del juego son:
