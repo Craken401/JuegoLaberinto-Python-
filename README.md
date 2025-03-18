@@ -172,6 +172,13 @@ Mueve al personaje en la dirección especificada (Norte, Sur, Este, Oeste).
 Bicho.actua()
 Llama a su modo (Agresivo o Perezoso) para “dormir” primero, luego “caminar” y finalmente “atacar”.
 
+## Ejecución rápida con demo.py
+
+1. Edita el archivo `demo.py` para ajustar la ruta a tu archivo JSON (por ejemplo, `lab4Hab.json`) con el path absoluto o uno relativo (con doble barra).
+2. Ejecuta `python demo.py`.
+3. Usa el control por teclado (w/s/a/d/x) para mover el personaje, y observa cómo los bichos atacan en segundo plano.
+
+
 
 Autor:
 Víctor Nolasco Sánchez
