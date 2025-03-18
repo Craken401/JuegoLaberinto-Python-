@@ -7,12 +7,9 @@ A lo largo de este proyecto se han aplicado varios **patrones de diseño** (*Fac
 
 ## 🌐 Diagrama UML Actualizado
 
-A continuación se muestra el **diagrama UML** de la versión final, donde se aprecian las clases principales (`Juego`, `Laberinto`, `Habitacion`, `Puerta`, `Pared`, `Bomba`, `Bicho`, `Personaje`, etc.) y sus relaciones:
+A continuación se muestra un **diagrama UML** (colócalo en tu repositorio) donde se aprecian las clases principales (`Juego`, `Laberinto`, `Habitacion`, `Puerta`, `Pared`, `Bomba`, `Bicho`, `Personaje`, etc.) y sus relaciones:
 
-![image](https://github.com/user-attachments/assets/3cac78d3-ded1-40fa-a371-384485820a46)
-
-
-> (Reemplaza la URL anterior con la ruta real de la imagen en tu repositorio, si procede.)
+> **![image](https://github.com/user-attachments/assets/146cfd55-c57f-4fd4-914c-4f6c5bae149d)**
 
 ---
 
@@ -21,141 +18,159 @@ A continuación se muestra el **diagrama UML** de la versión final, donde se ap
 ### Clases Principales
 
 - **`Juego`**  
-  - Mantiene una instancia de `Laberinto` y referencias a `Bicho` (enemigos) y a un `Personaje`.
+  - Mantiene una instancia de `Laberinto` y referencias a una lista de `Bicho` (enemigos) y a un `Personaje`.
   - Proporciona métodos para construir laberintos de distinta complejidad:  
     - `crear_laberinto_2_habitaciones()`  
     - `crear_laberinto_4_habitaciones()`  
     - `crear_laberinto_2_habitaciones_fm(...)` (usa un `Creator` para el *Factory Method*).  
     - `crear_laberinto_2_habitaciones_fmd(...)` (combina *Factory Method* y *Decorator* para bombas).  
-  - Incluye operaciones para `abrir_puertas()`, `cerrar_puertas()`, **lanzar** los bichos en hilos (`lanzar_bichos`), y manejar la lógica de “fin de juego”.
+  - Incluye operaciones para `abrir_puertas()`, `cerrar_puertas()`, **lanzar** los bichos en hilos (`lanzar_bichos`) y manejar la lógica de “fin de juego”.
+  - Ofrece métodos para **agregar** un personaje (`agregar_personaje(nombre)`) y para moverlo (`mover_personaje_hacia(orientacion)`).
 
 - **`Laberinto`**  
   - Contiene una colección de `Habitacion`.
   - Permite **agregar** y **obtener** habitaciones.
-  - Su método `entrar(bicho)` coloca el bicho en la **Habitación #1**.
+  - Su método `entrar(bicho)` coloca el bicho en la **Habitación #1** (si existe).
 
 - **`Habitacion`**  
-  - Representa cada sala del laberinto, con sus cuatro direcciones (`norte`, `sur`, `este`, `oeste`).
-  - Al `entrar(bicho)`, actualiza la posición del bicho y muestra un mensaje.
+  - Representa cada sala del laberinto, con cuatro direcciones (`norte`, `sur`, `este`, `oeste`).
+  - Al `entrar(bicho)`, actualiza la posición del bicho y muestra un mensaje por consola.
+  - Subclase especial: **`Armario`**, donde el personaje puede “esconderse”.
 
-- **`ElementoMapa`** (superclase de todo)  
+- **`ElementoMapa`** (superclase abstracta)  
   - Clase base para `Habitacion`, `Puerta`, `Pared`, `Bomba`, etc.
   - Métodos de consulta: `es_habitacion()`, `es_puerta()`, `es_pared()`.  
-  - `entrar(bicho)` para manejar la interacción, y `recorrer(funcion)` para iterar internamente.
+  - `entrar(bicho)` para manejar la interacción, y `recorrer(funcion)` para aplicar una función a sí mismo (y a sus hijos, en caso de contenerlos).
 
 - **`Puerta`**  
-  - Conecta dos habitaciones (`lado1`, `lado2`), con estado `abierta/cerrada`.
-  - `entrar(bicho)` decide hacia qué lado mover al bicho si la puerta está abierta.  
-  - `abrir()` y `cerrar()` muestran mensajes de consola.
+  - Conecta dos habitaciones (`lado1`, `lado2`), con un estado `abierta/cerrada`.
+  - `entrar(bicho)` decide hacia qué lado mover al bicho si la puerta está abierta, o avisa de que está cerrada.
+  - `abrir()` y `cerrar()` muestran mensajes en consola.
 
 - **`Pared`** y **`ParedBomba`**  
   - Simulan muros. Al chocar, muestran un mensaje.  
-  - `ParedBomba` tiene una variable `activa` que, de estar `True`, podría producir explosión o daño adicional.
+  - `ParedBomba` tiene una variable `activa` para comportamientos adicionales al chocar.
+
+- **`Bomba`** (Decorator)  
+  - Clase que envuelve otro `ElementoMapa` (por ejemplo, una `Pared`) y añade el comportamiento adicional de explotar o mostrar un mensaje si `activa=True`.
 
 - **`Personaje`**  
-  - Ahora existe un “Personaje” (el usuario/jugador), subclase de `Ente`.
-  - Atributo `nombre`, además de `vidas` y `poder` (heredados).
-  - Métodos como `atacar()`, que ataca a todos los bichos en la misma habitación, y `caminar_hacia(unaOrientacion)` para moverse dentro del laberinto.
-  - Si sus `vidas` llegan a 0, se considera que el juego termina (fin del juego: ganan los bichos).
+  - Subclase de `Ente`. Atributo `nombre`, además de los heredados (`vidas`, `poder`, `posicion`, etc.).
+  - Métodos como:
+    - `atacar()`: ataca a todos los bichos en la misma habitación (internamente llama a métodos del `Juego`).
+    - `caminar_hacia(orientacion)`: mover al personaje por el laberinto (Norte, Sur, Este, Oeste).
+  - Si sus `vidas` llegan a 0, se considera que “ganan los bichos” y se termina el juego.
 
 - **`Bicho`**  
-  - Representa a las criaturas hostiles.  
-  - Atributos: `vidas`, `poder`, `posicion`, y un `modo` (la *Strategy*).
-  - Método `actua()` que combina “dormir”, “caminar” y “atacar” (según su modo).
-  - Cuando `vidas` llega a 0, se notifica al `Juego` para ver si el Personaje resulta ganador.
+  - Otro heredero de `Ente`, representa criaturas hostiles.
+  - Tiene un `modo` (estrategia) que puede ser `Agresivo` o `Perezoso`.
+  - Método `actua()`: duerme un tiempo, camina y ataca (según su *Strategy*).
+  - Cuando muere (`vidas`=0), avisa al `Juego` que revisa si todos los bichos están muertos y, de ser así, el personaje gana.
 
-- **`Modo`** (superclase)  
-  - *Strategy* para el comportamiento de `Bicho`.
-  - Subclases: `Agresivo` y `Perezoso`, que redefinen `dormir`, `caminar` y `atacar`.
-  - `Agresivo` descansa poco tiempo (1 segundo) y tiende a buscar al personaje rápido.
-  - `Perezoso` duerme más (3 segundos) antes de moverse y atacar.
+### Orientaciones
 
-- **`Creator`** y **`CreatorB`**  
-  - *Factory Method* para fabricar objetos del laberinto (`Habitacion`, `Pared`, `Puerta`, etc.).
-  - `CreatorB` crea `ParedBomba` en lugar de `Pared` normal.
-  - También pueden fabricar `Bomba` como *Decorator*.
+- **`Norte`**, `Sur`, `Este`, `Oeste`  
+  - Clases que podrían llamarse “Orientación”: proporcionan métodos para `caminar(bicho)` en una dirección concreta (delegación).
 
----
-
-## 🏛 Patrones de Diseño Implementados
+### Patrones de Diseño
 
 1. **Factory Method**  
    - Clases `Creator` y `CreatorB`.
-   - Permite personalizar qué tipo de paredes, bombas o puertas se instancian en la creación del laberinto.
-
+   - Permite personalizar qué tipo de paredes, puertas, bombas, etc., se instancian al construir el laberinto.
 2. **Decorator**  
-   - La clase `Bomba` envuelve a otro `ElementoMapa` (por ejemplo, una `Pared`), añadiendo comportamiento extra (mensaje de explosión).
-   - Extiende funcionalidad sin modificar la clase original.
-
+   - La clase `Bomba` (o `ParedBomba`) extiende el comportamiento de otro `ElementoMapa`.
+   - Añade efectos sin modificar la clase base.
 3. **Strategy**  
-   - Cada `Bicho` delega su comportamiento al `modo` (`Agresivo` o `Perezoso`).
-   - El método `actua()` aplica la *estrategia* de movimiento, ataque y descanso.
+   - Cada `Bicho` se asocia a un `modo` (`Agresivo` o `Perezoso`), el cual define su forma de dormir, atacar y moverse.  
+   - Permite cambiar el comportamiento en tiempo de ejecución.
+
+---
+
+## 🏗 Director y LaberintoBuilder (Construcción desde JSON)
+
+- **`LaberintoBuilder`**  
+  - Se encarga de *fabricar* las habitaciones, bombas, etc.  
+  - Permite luego construir un `Juego` con su `laberinto` asociado.
+- **`Director`**  
+  - Lee un archivo JSON (usando el módulo `json` en Python).
+  - Aplica un `builder` para crear el laberinto (llamando a `fabricar_habitacion`, `fabricar_bomba_en`, etc.).
+  - Después fabrica el `Juego` y los bichos (si en el JSON se define `"bichos"`).
+  - Método principal: `procesar(ruta_de_json)`, que ejecuta:
+    1. `leer_archivo(...)`
+    2. `ini_builder()`
+    3. `fabricarLaberinto()`
+    4. `fabricarJuego()`
+    5. `fabricarBichos()`
+  - Devuelve el `Juego` con `obtener_juego()`.
+
+Esta parte equivale a lo que en Smalltalk se hacía con `Director`, `LaberintoBuilder` y `NeoJSONReader`.
 
 ---
 
 ## 🚀 Ejecución y Uso
 
-1. **Clona este repositorio**  
-   ```bash
-   git clone https://github.com/tu-usuario/laberinto-python.git
-   cd laberinto-python
+### 1. Clona este repositorio
+
+```bash
+git clone https://github.com/tu-usuario/laberinto-python.git
+cd laberinto-python
+```
 2. Verifica que tienes Python 3 instalado
    python --version
-3. Ejecutar o importar en tu proyecto
-   Puedes crear un archivo main.py para hacer pruebas. Por ejemplo:
+3. Ejecución de ejemplo
+   Crea o edita un archivo main.py (o usa un intérprete interactivo):
 
-   from juego import Juego, Creator, CreatorB
+from director import Director
+from juego import Juego, Creator, CreatorB
 
-# Crear un juego y su Creator por defecto
-juego = Juego()
+# Usar Director para JSON
+director = Director()
+director.procesar("lab2Hab1Bomba.json")  # ejemplo de JSON con bichos y bombas
+juego = director.obtener_juego()
+
+# Agregamos un personaje y lo movemos
+juego.agregar_personaje("Pepe")
+juego.abrir_puertas()
+juego.lanzar_bichos()
+
+# También puedes usar los métodos directos de 'Juego' y 'Creator'
+juego2 = Juego()
 creator = Creator()
+juego2.crear_laberinto_2_habitaciones_fm(creator)
+juego2.agregar_personaje("Juan")
+juego2.abrir_puertas()
 
-# Crear un laberinto de 2 habitaciones simple
-laberinto_simple = juego.crear_laberinto_2_habitaciones()
 
-# Crear un laberinto de 4 habitaciones con bichos
-juego.crear_laberinto_4_habitaciones()
-print("Habitaciones en el laberinto:", len(juego.laberinto.habitaciones))
-
-# Probar Factory Method con paredes bomba
-juego_bombas = Juego()
-creator_b = CreatorB()
-laberinto_con_bombas = juego_bombas.crear_laberinto_2_habitaciones_fmd(creator_b)
-print("Laberinto con paredes bomba listo!")
-
-4. Ejecución del script
-python main.py
-
-Verás en la salida mensajes sobre la creación de habitaciones, apertura y cierre de puertas, movimientos de bichos, etc.
+Luego ejecuta: python main.py
+Verás en la salida mensajes sobre la creación de habitaciones, apertura de puertas, movimientos de bichos, etc.
 
 Métodos Destacados
 Juego.crear_laberinto_2_habitaciones()
-Crea un laberinto pequeño con dos salas unidas por una puerta.
+Construye un laberinto pequeño con dos salas unidas por una puerta.
 
 Juego.crear_laberinto_4_habitaciones()
-Construye un laberinto más grande con 4 habitaciones y 4 bichos (2 agresivos, 2 perezosos).
+Crea un laberinto más grande con 4 habitaciones y 4 bichos (2 agresivos y 2 perezosos).
 
 Juego.crear_laberinto_2_habitaciones_fm(creator)
-Usa un Creator para fabricar las habitaciones, puertas y paredes.
-Muestra el uso del Factory Method.
+Usa un Creator para fabricar las habitaciones, puertas y paredes (ejemplo de Factory Method).
 
 Juego.crear_laberinto_2_habitaciones_fmd(creator)
-Igual que el anterior, pero añade “bombas” como Decorators en algunas paredes.
+Similar al anterior, pero incluye “bombas” como Decorators.
 
 Juego.abrir_puertas() / Juego.cerrar_puertas()
 Recorren el laberinto llamando a abrir() o cerrar() en cada Puerta.
 
 Juego.lanzar_bichos()
-Inicia un thread por cada bicho para que se muevan y ataquen de forma concurrente.
+Inicia un hilo por cada Bicho, para que se muevan y ataquen concurrentemente.
 
-Personaje
+Personaje.atacar()
+Ataca a todos los bichos en la misma habitación (gestiona internamente la lógica en Juego).
 
-atacar(): ataca a todos los bichos que estén en la misma habitación (internamente llama a métodos del Juego para identificarlos).
-caminar_hacia(orientacion): mueve al personaje en la dirección indicada (Norte, Sur, Este, Oeste).
+Personaje.caminar_hacia(orientacion)
+Mueve al personaje en la dirección especificada (Norte, Sur, Este, Oeste).
+
 Bicho.actua()
-
-Llama a su modo (Agresivo / Perezoso) para “dormir” primero, luego “caminar” y finalmente “atacar”.
-El “ataque” busca al Personaje en la misma habitación, reduciendo sus vidas si lo encuentra.
+Llama a su modo (Agresivo o Perezoso) para “dormir” primero, luego “caminar” y finalmente “atacar”.
 
 
 Autor:
