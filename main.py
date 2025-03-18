@@ -1,31 +1,28 @@
-import threading
+import json
 import time
+import threading
 import random
 
-# ==========================
-# Ente (base de Personaje y Bicho)
-# ==========================
+# =========================================
+# ===============  ENTES  =================
+# =========================================
 class Ente:
     """
-    En Smalltalk, tanto 'Bicho' como 'Personaje' heredan de un 'Ente' con:
-     - vidas
-     - poder
-     - posicion
-     - juego (referencia al 'Juego' para avisar de muertes, etc.)
+    Equivale a la clase 'Ente' en Smalltalk.
+    Bicho y Personaje heredan de aquí.
     """
-
     def __init__(self):
         self.vidas = 5
         self.poder = 1
         self.posicion = None
-        self.juego = None  # Para que sepa en qué juego está
+        self.juego = None  # referencia al Juego
 
     def esta_vivo(self):
         return self.vidas > 0
 
     def es_atacado_por(self, atacante):
         """
-        Equivale a 'self esAtacadoPor: unBicho/unPersonaje' en Smalltalk.
+        Smalltalk: esAtacadoPor:
         Resta vidas y, si llega a 0, llama a he_muerto().
         """
         print(f"{self} es atacado por {atacante}")
@@ -36,9 +33,8 @@ class Ente:
 
     def he_muerto(self):
         """
-        En Smalltalk, Bicho hace: self juego terminarBicho:self
-        Personaje hace: self juego muerePersonaje
-        Aquí lo dejamos abstracto; subclases lo implementan.
+        Subclase (Bicho o Personaje) debe implementar la lógica final
+        (avisar al juego de que muere).
         """
         raise NotImplementedError("Subclase debe implementarlo")
 
@@ -46,31 +42,24 @@ class Ente:
         return f"Ente(vidas={self.vidas})"
 
 
-# ==========================
-# Bicho (subclase de Ente)
-# ==========================
 class Bicho(Ente):
     """
-    Equivale a la clase Bicho en Smalltalk, pero ahora hereda de Ente.
-    Tiene un 'modo' (Agresivo/Perezoso) y un método 'atacar' (busca al Personaje).
+    Equivale a Bicho en Smalltalk. Tiene un 'modo' (Agresivo/Perezoso).
     """
-
     def __init__(self):
         super().__init__()
-        self.modo = None  # Modo (Agresivo/Perezoso)
+        self.modo = None  # Agresivo o Perezoso
 
     def he_muerto(self):
-        """
-        Equivale a Bicho>>heMuerto => self juego terminarBicho:self
-        """
+        # Smalltalk: juego terminarBicho:self
         if self.juego:
             self.juego.terminar_bicho(self)
         else:
-            print("Bicho muere, pero no hay juego definido.")
+            print("Bicho muere sin 'juego' asignado.")
 
     def actua(self):
         """
-        El bucle principal del bicho en Smalltalk: modo.actua(self).
+        Llama a modo.actua(self).
         """
         if self.modo:
             self.modo.actua(self)
@@ -85,21 +74,20 @@ class Bicho(Ente):
 
     def atacar(self):
         """
-        En Smalltalk: self juego buscarPersonaje:self
+        Smalltalk: self juego buscarPersonaje:self
         """
         if self.juego:
             self.juego.buscar_personaje(self)
 
     def obtener_orientacion(self):
         """
-        Equivale a 'bicho posicion obtenerOrientacion' en Smalltalk.
+        Equivale a 'posicion obtenerOrientacion' en Smalltalk.
         """
-        if self.posicion and hasattr(self.posicion, 'obtenerOrientacion'):
-            return self.posicion.obtenerOrientacion()
+        if self.posicion and hasattr(self.posicion, 'obtener_orientacion'):
+            return self.posicion.obtener_orientacion()
         return None
 
     def __str__(self):
-        # Mostrar "Bicho-Agresivo" o "Bicho-Perezoso" según el modo:
         if self.modo:
             if self.modo.es_agresivo():
                 modo_str = "Agresivo"
@@ -112,65 +100,53 @@ class Bicho(Ente):
         return f"Bicho({modo_str}, vidas={self.vidas})"
 
 
-# ==========================
-# Personaje (subclase de Ente)
-# ==========================
 class Personaje(Ente):
     """
-    Equivale a la clase Personaje (usuario/jugador) en Smalltalk.
+    Equivale a la clase Personaje en Smalltalk.
     """
-
     def __init__(self, nombre):
         super().__init__()
         self.nombre = nombre
 
     def atacar(self):
         """
-        En Smalltalk: self juego buscarBichos:self
-        (Ataca a todos los bichos en su misma habitación.)
+        Smalltalk: self juego buscarBichos:self
         """
         if self.juego:
             self.juego.buscar_bichos(self)
 
     def he_muerto(self):
-        """
-        Equivale a Personaje>>heMuerto => self juego muerePersonaje
-        """
+        # Smalltalk: juego muerePersonaje
         if self.juego:
             self.juego.muere_personaje()
         else:
-            print("Personaje muere, pero no hay juego definido.")
+            print("Personaje muere sin 'juego' asignado.")
 
     def __str__(self):
         return f"Personaje({self.nombre}, vidas={self.vidas})"
 
 
-# ==========================
-# Modo (Agresivo / Perezoso)
-# ==========================
+# =========================================
+# ===============   MODO   ================
+# =========================================
 class Modo:
     """
-    Clase abstracta. 'actua:' en Smalltalk se hace con:
-      - dormir(bicho)
-      - caminar(bicho)
-      - atacar(bicho)
+    Interfaz para Agresivo / Perezoso.
+    En Smalltalk: la template: actua => dormir, caminar, atacar
     """
-
     def actua(self, bicho):
-        # Template Method
         self.dormir(bicho)
         self.caminar(bicho)
         self.atacar(bicho)
 
     def caminar(self, bicho):
-        raise NotImplementedError("Debe implementarse en subclases")
+        raise NotImplementedError("Subclase debe implementarlo")
 
     def atacar(self, bicho):
-        # Por defecto, no hace nada
         bicho.atacar()
 
     def dormir(self, bicho):
-        raise NotImplementedError("Debe implementarse en subclases")
+        raise NotImplementedError("Subclase debe implementarlo")
 
     def es_agresivo(self):
         return False
@@ -207,14 +183,13 @@ class Perezoso(Modo):
         time.sleep(3)
 
 
-# ==========================
-# ElementoMapa base
-# ==========================
+# =========================================
+# ===========  ELEMENTO MAPA  =============
+# =========================================
 class ElementoMapa:
     """
-    Clase base (Smalltalk: ElementoMapa).
+    Equivale a 'ElementoMapa' en Smalltalk (puede ser Pared, Puerta, etc.)
     """
-
     def es_habitacion(self):
         return False
 
@@ -224,65 +199,75 @@ class ElementoMapa:
     def es_pared(self):
         return False
 
-    def entrar(self, alguien=None):
-        raise NotImplementedError("Debe implementarse en subclases")
+    def entrar(self, alguien):
+        raise NotImplementedError("Subclase debe implementarlo")
 
     def recorrer(self, funcion):
+        # Por defecto, solo se aplica la función a uno mismo.
         funcion(self)
 
 
-# ==========================
-# Decorador / Bomba
-# ==========================
+# =========================================
+# ===========  DECORADORES  ===============
+# =========================================
 class Decorador(ElementoMapa):
     def __init__(self, em):
         super().__init__()
         self.em = em
 
-    def entrar(self, bicho=None):
-        self.em.entrar(bicho)
+    def entrar(self, alguien):
+        self.em.entrar(alguien)
 
 
 class Bomba(Decorador):
+    """
+    Equivale a la clase Bomba en Smalltalk (un decorador).
+    """
     def __init__(self, em):
         super().__init__(em)
         self.activa = False
 
-    def entrar(self, bicho=None):
+    def entrar(self, alguien):
         if self.activa:
-            print(f"{bicho} Te has chocado con una bomba")
-            # Podríamos bajar vidas, etc.
+            print(f"{alguien} Te has chocado con una bomba (activa).")
+            # Podríamos restar vidas, etc.
         else:
-            self.em.entrar(bicho)
+            self.em.entrar(alguien)
+
+    def esBomba(self):
+        return True
+
+    def __str__(self):
+        return f"Bomba(activa={self.activa})"
 
 
-# ==========================
-# Pared y ParedBomba
-# ==========================
 class Pared(ElementoMapa):
     def es_pared(self):
         return True
 
-    def entrar(self, bicho=None):
-        print(f"{bicho} ha chocado con una pared")
+    def entrar(self, alguien):
+        print(f"{alguien} ha chocado con una pared")
 
 
 class ParedBomba(Pared):
+    """
+    Subclase de Pared que tiene 'activa'.
+    """
     def __init__(self):
         super().__init__()
         self.activa = False
 
-    def entrar(self, bicho=None):
+    def entrar(self, alguien):
         if self.activa:
-            print(f"{bicho} ha chocado con una ParedBomba (activa)")
+            print(f"{alguien} ha chocado con una ParedBomba (activa)")
         else:
-            print(f"{bicho} ha chocado con una ParedBomba (inactiva)")
+            print(f"{alguien} ha chocado con una ParedBomba (inactiva)")
 
 
-# ==========================
-# Puerta
-# ==========================
 class Puerta(ElementoMapa):
+    """
+    Equivale a Puerta en Smalltalk, con .abierta, .lado1, .lado2
+    """
     def __init__(self, lado1, lado2):
         super().__init__()
         self.abierta = False
@@ -294,29 +279,35 @@ class Puerta(ElementoMapa):
 
     def abrir(self):
         self.abierta = True
-        print(f"Puerta {self.lado1.num}-{self.lado2.num} ABIERTA")
+        if hasattr(self.lado1, 'num') and hasattr(self.lado2, 'num'):
+            print(f"Puerta {self.lado1.num}-{self.lado2.num} ABIERTA")
+        else:
+            print("Puerta ABIERTA (no num)")
 
     def cerrar(self):
         self.abierta = False
-        print(f"Puerta {self.lado1.num}-{self.lado2.num} CERRADA")
+        if hasattr(self.lado1, 'num') and hasattr(self.lado2, 'num'):
+            print(f"Puerta {self.lado1.num}-{self.lado2.num} CERRADA")
+        else:
+            print("Puerta CERRADA (no num)")
 
-    def entrar(self, bicho=None):
+    def entrar(self, alguien):
         if self.abierta:
-            if bicho and bicho.posicion == self.lado1:
-                self.lado2.entrar(bicho)
+            if alguien and alguien.posicion == self.lado1:
+                self.lado2.entrar(alguien)
             else:
-                self.lado1.entrar(bicho)
+                self.lado1.entrar(alguien)
         else:
             print("La puerta está cerrada")
 
-    def recorrer(self, funcion):
-        funcion(self)
 
-
-# ==========================
-# Habitacion
-# ==========================
+# =========================================
+# ===========   HABITACIONES  =============
+# =========================================
 class Habitacion(ElementoMapa):
+    """
+    Equivale a Habitacion en Smalltalk.
+    """
     def __init__(self, num):
         super().__init__()
         self.num = num
@@ -328,12 +319,13 @@ class Habitacion(ElementoMapa):
     def es_habitacion(self):
         return True
 
-    def entrar(self, bicho=None):
-        print(f"{bicho} está en Hab{self.num}")
-        if bicho:
-            bicho.posicion = self
+    def entrar(self, alguien):
+        print(f"{alguien} está en Hab{self.num}")
+        if alguien:
+            alguien.posicion = self
 
     def conectar(self, direccion, elemento):
+        # Por ejemplo: direccion="norte", elemento=Puerta u otra
         setattr(self, direccion, elemento)
 
     def recorrer(self, funcion):
@@ -342,45 +334,68 @@ class Habitacion(ElementoMapa):
             if lado is not None:
                 lado.recorrer(funcion)
 
+    def __str__(self):
+        return f"Hab{self.num}"
 
-# ==========================
-# Laberinto
-# ==========================
+
+class Armario(Habitacion):
+    """
+    Equivale a 'Armario' en Smalltalk (subclase de Contenedor).
+    """
+    def __init__(self, num):
+        super().__init__(num)
+
+    def entrar(self, alguien):
+        print(f"{alguien} se esconde en el armario Hab{self.num}")
+        if alguien:
+            alguien.posicion = self
+
+
 class Laberinto(ElementoMapa):
+    """
+    Equivale a 'Laberinto' en Smalltalk (Contenedor de Habitaciones).
+    """
     def __init__(self):
         super().__init__()
         self.habitaciones = []
 
-    def agregar_habitacion(self, habitacion):
-        self.habitaciones.append(habitacion)
+    def agregar_habitacion(self, hab):
+        self.habitaciones.append(hab)
 
     def obtener_habitacion(self, num):
-        return next((h for h in self.habitaciones if h.num == num), None)
+        for h in self.habitaciones:
+            if h.num == num:
+                return h
+        return None
 
-    def entrar(self, bicho=None):
+    def entrar(self, alguien):
+        # Equivalente a la lógica de: obtenerHabitacion(1).entrar(alguien)
         hab1 = self.obtener_habitacion(1)
-        if hab1 and bicho:
-            hab1.entrar(bicho)
+        if hab1:
+            hab1.entrar(alguien)
 
     def recorrer(self, funcion):
-        for hab in self.habitaciones:
-            hab.recorrer(funcion)
+        for h in self.habitaciones:
+            h.recorrer(funcion)
+
+    def __str__(self):
+        return "Laberinto"
 
 
-# ==========================
-# Orientaciones (Norte, Sur, Este, Oeste)
-# ==========================
+# =========================================
+# ============= ORIENTACIONES =============
+# =========================================
 class Orientacion:
     def caminar(self, bicho):
         raise NotImplementedError("Subclase debe implementarlo")
 
-    def obtenerElementoOrEn(self, unContenedor):
+    def obtenerElementoOrEn(self, contenedor):
         raise NotImplementedError("Subclase debe implementarlo")
 
-    def ponerElemento(self, unEM, unContenedor):
+    def ponerElemento(self, elemento, contenedor):
         raise NotImplementedError("Subclase debe implementarlo")
 
-    def recorrer(self, funcion, contenedor=None):
+    def recorrer(self, funcion, contenedor):
         raise NotImplementedError("Subclase debe implementarlo")
 
 
@@ -389,14 +404,14 @@ class Este(Orientacion):
         if bicho.posicion and bicho.posicion.este:
             bicho.posicion.este.entrar(bicho)
 
-    def obtenerElementoOrEn(self, unContenedor):
-        return unContenedor.este
+    def obtenerElementoOrEn(self, contenedor):
+        return contenedor.este
 
-    def ponerElemento(self, unEM, unContenedor):
-        unContenedor.este = unEM
+    def ponerElemento(self, elemento, contenedor):
+        contenedor.este = elemento
 
-    def recorrer(self, funcion, contenedor=None):
-        if contenedor and contenedor.este:
+    def recorrer(self, funcion, contenedor):
+        if contenedor.este:
             contenedor.este.recorrer(funcion)
 
 
@@ -405,14 +420,14 @@ class Norte(Orientacion):
         if bicho.posicion and bicho.posicion.norte:
             bicho.posicion.norte.entrar(bicho)
 
-    def obtenerElementoOrEn(self, unContenedor):
-        return unContenedor.norte
+    def obtenerElementoOrEn(self, contenedor):
+        return contenedor.norte
 
-    def ponerElemento(self, unEM, unContenedor):
-        unContenedor.norte = unEM
+    def ponerElemento(self, elemento, contenedor):
+        contenedor.norte = elemento
 
-    def recorrer(self, funcion, contenedor=None):
-        if contenedor and contenedor.norte:
+    def recorrer(self, funcion, contenedor):
+        if contenedor.norte:
             contenedor.norte.recorrer(funcion)
 
 
@@ -421,14 +436,14 @@ class Oeste(Orientacion):
         if bicho.posicion and bicho.posicion.oeste:
             bicho.posicion.oeste.entrar(bicho)
 
-    def obtenerElementoOrEn(self, unContenedor):
-        return unContenedor.oeste
+    def obtenerElementoOrEn(self, contenedor):
+        return contenedor.oeste
 
-    def ponerElemento(self, unEM, unContenedor):
-        unContenedor.oeste = unEM
+    def ponerElemento(self, elemento, contenedor):
+        contenedor.oeste = elemento
 
-    def recorrer(self, funcion, contenedor=None):
-        if contenedor and contenedor.oeste:
+    def recorrer(self, funcion, contenedor):
+        if contenedor.oeste:
             contenedor.oeste.recorrer(funcion)
 
 
@@ -437,24 +452,27 @@ class Sur(Orientacion):
         if bicho.posicion and bicho.posicion.sur:
             bicho.posicion.sur.entrar(bicho)
 
-    def obtenerElementoOrEn(self, unContenedor):
-        return unContenedor.sur
+    def obtenerElementoOrEn(self, contenedor):
+        return contenedor.sur
 
-    def ponerElemento(self, unEM, unContenedor):
-        unContenedor.sur = unEM
+    def ponerElemento(self, elemento, contenedor):
+        contenedor.sur = elemento
 
-    def recorrer(self, funcion, contenedor=None):
-        if contenedor and contenedor.sur:
+    def recorrer(self, funcion, contenedor):
+        if contenedor.sur:
             contenedor.sur.recorrer(funcion)
 
 
-# ==========================
-# Creator / CreatorB
-# ==========================
+# =========================================
+# ==============  FACTORY  ================
+# =========================================
 class Creator:
+    """
+    Equivale a la clase 'Creator' en Smalltalk (factory normal).
+    """
     def fabricar_habitacion(self, num):
         hab = Habitacion(num)
-        # En Smalltalk se agregan orientaciones. Simplificamos conectando paredes:
+        # Añadimos paredes por defecto:
         hab.norte = self.fabricar_pared()
         hab.sur   = self.fabricar_pared()
         hab.este  = self.fabricar_pared()
@@ -474,6 +492,8 @@ class Creator:
         return Puerta(lado1, lado2)
 
     def fabricar_bomba(self):
+        # En Smalltalk se hacía 'Bomba new', que es un decorador.
+        # Por simplicidad: Bomba(None)
         return Bomba(None)
 
     def fabricar_bicho_agresivo(self):
@@ -491,84 +511,112 @@ class Creator:
 
 
 class CreatorB(Creator):
+    """
+    Equivale a CreatorB en Smalltalk (usa ParedBomba).
+    """
     def fabricar_pared(self):
         return ParedBomba()
 
 
-# ==========================
-# Juego
-# ==========================
+# =========================================
+# ==============   JUEGO  =================
+# =========================================
 class Juego:
+    """
+    Equivale a la clase 'Juego' en Smalltalk.
+    Contiene un Laberinto, lista de bichos, hilos, personaje, etc.
+    """
     def __init__(self):
         self.laberinto = Laberinto()
         self.bichos = []
         self.hilos = {}
-        self.person = None  # En Smalltalk: 'person'
+        self.person = None
 
-    # -------- Personaje --------
+    # -- Personaje --
     def agregar_personaje(self, nombre):
         p = Personaje(nombre)
         p.juego = self
         self.person = p
-        # En Smalltalk: self laberinto entrar: self person
-        self.laberinto.entrar(self.person)
+        self.laberinto.entrar(p)
 
     def muere_personaje(self):
         print("Fin del juego: ganan los bichos")
         self.terminar_bichos()
 
-    def buscar_bichos(self, unPersonaje):
-        """
-        En Smalltalk: 'self bichos do: [:b | if b.posicion = unPersonaje.posicion then b esAtacadoPor:unPersonaje]'
-        """
+    def buscar_bichos(self, personaje):
+        # Smalltalk: bichos do: ...
         for b in self.bichos:
-            if b.posicion == unPersonaje.posicion:
-                b.es_atacado_por(unPersonaje)
+            if b.posicion == personaje.posicion:
+                b.es_atacado_por(personaje)
 
-    def buscar_personaje(self, unBicho):
-        """
-        En Smalltalk: 'posBicho=posPerson => self person esAtacadoPor: unBicho'
-        """
-        if self.person and unBicho.posicion == self.person.posicion:
-            self.person.es_atacado_por(unBicho)
+    def buscar_personaje(self, bicho):
+        if self.person and bicho.posicion == self.person.posicion:
+            self.person.es_atacado_por(bicho)
 
     def estan_todos_los_bichos_muertos(self):
-        """
-        En Smalltalk: detect un bicho vivo. Si no hay ninguno y el Personaje vive, => ganaPersonaje.
-        """
         for b in self.bichos:
             if b.esta_vivo():
-                return  # hay al menos un bicho vivo, no pasa nada
-        # Si llegamos aquí, ninguno está vivo:
+                return  # alguno sigue vivo
+        # ninguno vivo:
         if self.person and self.person.esta_vivo():
             self.gana_personaje()
 
     def gana_personaje(self):
         print("Fin juego: gana el personaje")
 
-    # -------- Bichos --------
+    # -- Bichos --
     def agregar_bicho(self, bicho):
         self.bichos.append(bicho)
         bicho.juego = self
 
     def eliminar_bicho(self, bicho):
-        if bicho in self.bichos:
+        try:
             self.bichos.remove(bicho)
-        else:
+        except ValueError:
             print("No existe ese bicho")
 
     def terminar_bicho(self, bicho):
         bicho.vidas = 0
         print(f"{bicho} muere")
-        # Chequea si están todos muertos:
         self.estan_todos_los_bichos_muertos()
 
-    # -------- Movimientos Personaje --------
+    # -- Movimiento Personaje --
     def mover_personaje_hacia(self, orientacion):
         if self.person:
             self.person.caminar_hacia(orientacion)
 
-    # -------- Laberintos Predefinidos --------
+    # -- Apertura / Cierre de puertas --
+    def abrir_puertas(self):
+        def abrir_si_puerta(e):
+            if e.es_puerta():
+                e.abrir()
+        self.laberinto.recorrer(abrir_si_puerta)
+
+    def cerrar_puertas(self):
+        def cerrar_si_puerta(e):
+            if e.es_puerta():
+                e.cerrar()
+        self.laberinto.recorrer(cerrar_si_puerta)
+
+    # -- Hilos para bichos --
+    def lanzar_bicho(self, bicho):
+        def hilo_bicho():
+            while bicho.esta_vivo():
+                bicho.actua()
+                time.sleep(0.2)
+        t = threading.Thread(target=hilo_bicho)
+        t.start()
+        self.hilos[bicho] = t
+
+    def lanzar_bichos(self):
+        for b in self.bichos:
+            self.lanzar_bicho(b)
+
+    def terminar_bichos(self):
+        for b in list(self.bichos):
+            self.terminar_bicho(b)
+
+    # -- Habitaciones (construcciones simples) --
     def obtener_habitacion(self, num):
         return self.laberinto.obtener_habitacion(num)
 
@@ -672,37 +720,222 @@ class Juego:
         self.agregar_bicho(bicho_verde1)
         self.agregar_bicho(bicho_verde2)
 
-    # -------- Abrir / Cerrar Puertas --------
-    def abrir_puertas(self):
-        def abrir_si_puerta(e):
-            if e.es_puerta():
-                e.abrir()
-        self.laberinto.recorrer(abrir_si_puerta)
 
-    def cerrar_puertas(self):
-        def cerrar_si_puerta(e):
-            if e.es_puerta():
-                e.cerrar()
-        self.laberinto.recorrer(cerrar_si_puerta)
+# =========================================
+# ==========  BUILDER (LaberintoBuilder)
+# =========================================
+class LaberintoBuilder:
+    """
+    Equivale a LaberintoBuilder en Smalltalk:
+    - construye laberinto
+    - construye juego
+    - fabrica habitacion, armario, bomba, etc.
+    """
+    def __init__(self):
+        self.juego = None
+        self.laberinto = None
 
-    # -------- Hilos (lanzarBicho / terminarBichos) --------
-    def lanzar_bicho(self, bicho):
-        def hilo_bicho():
-            while bicho.esta_vivo():
-                bicho.actua()
-                time.sleep(0.2)
-        t = threading.Thread(target=hilo_bicho)
-        t.start()
-        self.hilos[bicho] = t
+    def fabricar_juego(self):
+        self.juego = Juego()
+        # Asocia el laberinto al juego
+        self.juego.laberinto = self.laberinto
 
-    def lanzar_bichos(self):
-        for b in self.bichos:
-            self.lanzar_bicho(b)
+    def fabricar_laberinto(self):
+        self.laberinto = Laberinto()
 
-    def terminar_bichos(self):
+    def fabricar_habitacion(self, num):
+        h = Habitacion(num)
+        # En Smalltalk se añadían orientaciones y paredes.
+        # Aquí puedes emular el mismo comportamiento:
+        h.norte = Pared()
+        h.sur = Pared()
+        h.este = Pared()
+        h.oeste = Pared()
+        # Se la agregamos al laberinto
+        if self.laberinto:
+            self.laberinto.agregar_habitacion(h)
+        return h
+
+    def fabricar_armario(self, num, contenedor):
+        # En Smalltalk: Armario new, etc.
+        arm = Armario(num)
+        # Conectarle paredes/orientaciones si quieres
+        arm.norte = Pared()
+        arm.sur   = Pared()
+        arm.este  = Pared()
+        arm.oeste = Pared()
+        # En Smalltalk se hacía contenedor.agregarHijo(arm).
+        # Aquí, si contenedor es una Habitación,
+        # podemos ponerlo en un costado o "hijos" (no formal en Python).
+        # Por simplicidad, omitimos.
+        # ...
+        if isinstance(contenedor, Habitacion):
+            # Podríamos "adjuntar" de algún modo. O nada.
+            pass
+        return arm
+
+    def fabricar_bomba_en(self, contenedor):
+        # Equivale a 'Bomba new' y contenedor agregarHijo.
+        # En Python no tenemos 'agregarHijo' salvo que contenedor sea un Laberinto/Habitación
+        # Se puede simular con un decorador, etc.
+        # Simplificamos: no implementamos 'hijos' en habitacion.
+        bomb = Bomba(None)
+        # No hay un "agregarHijo" en Habitacion por defecto. 
+        # Lo omitimos o definimos la lógica que quieras.
+        # ...
+        pass
+
+    def fabricar_bicho_agresivo(self):
+        b = Bicho()
+        b.ini_agresivo()
+        return b
+
+    def fabricar_bicho_perezoso(self):
+        b = Bicho()
+        b.ini_perezoso()
+        return b
+
+    def fabricar_bicho_modo(self, modo_str, num_hab):
         """
-        Equivale a 'terminarBichos': setea vidas=0 a todos y así paran sus hilos.
+        Equivale a 'fabricarBichoModo:posicion:' en Smalltalk.
         """
-        for b in list(self.bichos):
-            self.terminar_bicho(b)
-        # Podríamos join() los threads si quisiéramos.
+        # Depende de si modo_str = "Agresivo" o "Perezoso"
+        if modo_str.lower() == "agresivo":
+            b = self.fabricar_bicho_agresivo()
+        else:
+            b = self.fabricar_bicho_perezoso()
+
+        hab = None
+        if self.laberinto:
+            hab = self.laberinto.obtener_habitacion(num_hab)
+        if hab:
+            hab.entrar(b)
+        if self.juego:
+            self.juego.agregar_bicho(b)
+
+    def fabricar_pared(self):
+        return Pared()
+
+    def fabricar_puerta_l1(self, num1, or1, num2, or2):
+        """
+        En Smalltalk: fabricarPuertaL1:or1:L2:or2:
+        num1 -> Habitacion 1
+        or1  -> 'Sur', 'Norte', etc.
+        num2 -> Habitacion 2
+        or2  -> 'Sur', 'Norte', etc.
+        """
+        if not self.laberinto:
+            return
+        h1 = self.laberinto.obtener_habitacion(num1)
+        h2 = self.laberinto.obtener_habitacion(num2)
+
+        if not h1 or not h2:
+            return
+        # Convert or1 -> clase orientacion?
+        # En Smalltalk se usaba perform:('fabricar'+or1)
+        # Aquí lo simplificamos: creamos la puerta y la asignamos.
+        pt = Puerta(h1, h2)
+
+        # Asignamos en la habitacion h1/h2
+        if or1.lower() == "norte":
+            h1.norte = pt
+        elif or1.lower() == "sur":
+            h1.sur = pt
+        elif or1.lower() == "este":
+            h1.este = pt
+        elif or1.lower() == "oeste":
+            h1.oeste = pt
+
+        if or2.lower() == "norte":
+            h2.norte = pt
+        elif or2.lower() == "sur":
+            h2.sur = pt
+        elif or2.lower() == "este":
+            h2.este = pt
+        elif or2.lower() == "oeste":
+            h2.oeste = pt
+
+    def obtener_juego(self):
+        return self.juego
+
+
+# =========================================
+# =============   DIRECTOR   ==============
+# =========================================
+class Director:
+    """
+    Equivale a Director en Smalltalk.
+    - leer JSON
+    - crear builder
+    - fabricar laberinto, juego, bichos
+    """
+    def __init__(self):
+        self.builder = None
+        self.dict_data = {}
+
+    def leer_archivo(self, archivo_json):
+        with open(archivo_json, 'r', encoding='utf-8') as f:
+            self.dict_data = json.load(f)
+
+    def ini_builder(self):
+        self.builder = LaberintoBuilder()
+
+    def fabricar_laberinto(self):
+        self.builder.fabricar_laberinto()
+        # Recorrer "laberinto" del JSON
+        laberinto_list = self.dict_data.get("laberinto", [])
+        for elem in laberinto_list:
+            self.fabricar_laberinto_recursivo(elem, "root")
+
+        # Recorrer "puertas"
+        puertas_list = self.dict_data.get("puertas", [])
+        for p in puertas_list:
+            # Ej: [1, "Sur", 2, "Norte"]
+            num1, or1, num2, or2 = p
+            self.builder.fabricar_puerta_l1(num1, or1, num2, or2)
+
+    def fabricar_juego(self):
+        self.builder.fabricar_juego()
+
+    def fabricar_bichos(self):
+        bichos_list = self.dict_data.get("bichos", [])
+        for b in bichos_list:
+            modo = b.get("modo", "Perezoso")
+            pos = b.get("posicion", 1)
+            self.builder.fabricar_bicho_modo(modo, pos)
+
+    def fabricar_laberinto_recursivo(self, unDic, padre):
+        """
+        En Smalltalk: si 'tipo'=='habitacion' -> fabricarHabitacion
+                      si 'tipo'=='armario' -> fabricarArmario
+                      si 'tipo'=='bomba' -> ...
+        """
+        tipo = unDic.get("tipo", "")
+        con = None
+
+        if tipo == "habitacion":
+            con = self.builder.fabricar_habitacion(unDic["num"])
+        elif tipo == "armario":
+            # padre no se usa mucho en Python, pero lo dejamos:
+            con = self.builder.fabricar_armario(unDic["num"], padre)
+        elif tipo == "bomba":
+            # añade una bomba a 'padre'
+            self.builder.fabricar_bomba_en(padre)
+
+        # hijos recursivos
+        hijos = unDic.get("hijos", [])
+        for h in hijos:
+            self.fabricar_laberinto_recursivo(h, con)
+
+    def procesar(self, archivo_json):
+        """
+        Smalltalk: leerArchivo:; iniBuilder; fabricarLaberinto; fabricarJuego; fabricarBichos
+        """
+        self.leer_archivo(archivo_json)
+        self.ini_builder()
+        self.fabricar_laberinto()
+        self.fabricar_juego()
+        self.fabricar_bichos()
+
+    def obtener_juego(self):
+        return self.builder.obtener_juego()
